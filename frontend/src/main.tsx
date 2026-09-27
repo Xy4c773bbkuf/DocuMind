@@ -21,7 +21,7 @@ import {
   Tag,
 } from "lucide-react";
 import "./index.css";
-import MvpApp from "./MvpApp";
+import MvpApp from "./Workspace";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 type Doc = {
@@ -132,60 +132,53 @@ function Login() {
     }
   };
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-white">
-      <div className="hidden lg:flex bg-brand text-white p-16 flex-col justify-between">
-        <div className="text-2xl font-black">✦ Insightly</div>
+    <div className="auth-screen">
+      <div className="auth-aside">
+        <div className="wordmark">DOCUMIND<span>.</span></div>
         <div>
-          <h1 className="text-6xl font-black leading-tight mb-5">
-            Turn reading
-            <br />
-            into insight.
-          </h1>
-          <p className="text-purple-100 text-lg max-w-md">
-            Upload documents, discover key themes, and find what matters in
-            seconds.
-          </p>
+          <p className="eyebrow">A PRIVATE DOCUMENT LIBRARY</p>
+          <h1>Read clearly.<br /><em>Return often.</em></h1>
+          <p>Extract the useful parts of your documents and keep them close at hand.</p>
         </div>
-        <p className="text-purple-200 text-sm">
-          Private by design · AI optional
-        </p>
+        <p className="auth-foot">LOCAL FIRST / AI OPTIONAL</p>
       </div>
-      <div className="flex items-center justify-center p-8">
-        <form onSubmit={submit} className="w-full max-w-md">
-          <div className="text-3xl font-black mb-2">
+      <div className="auth-form-wrap">
+        <form onSubmit={submit} className="auth-form">
+          <p className="eyebrow">{register ? "NEW READER" : "WELCOME BACK"}</p>
+          <div className="auth-title">
             {register ? "Create your workspace" : "Welcome back"}
           </div>
-          <p className="text-muted mb-8">
+          <p className="auth-copy">
             {register
               ? "Start organizing your knowledge today."
               : "Sign in to continue to your documents."}
           </p>
-          <label className="text-sm font-semibold">Email</label>
+          <label>Email</label>
           <input
             required
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full mt-2 mb-5 p-3 rounded-xl border outline-brand"
+            className="auth-input"
             placeholder="you@example.com"
           />
-          <label className="text-sm font-semibold">Password</label>
+          <label>Password</label>
           <input
             required
             minLength={8}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full mt-2 mb-6 p-3 rounded-xl border outline-brand"
-            placeholder="••••••••"
+            className="auth-input"
+            placeholder="Your password"
           />
-          <button className="w-full bg-brand text-white p-3 rounded-xl font-bold hover:opacity-90">
+          <button className="auth-submit">
             {register ? "Create account" : "Sign in"}
           </button>
           <button
             type="button"
             onClick={() => setRegister(!register)}
-            className="w-full mt-4 text-brand text-sm"
+            className="auth-switch"
           >
             {register
               ? "Already have an account? Sign in"

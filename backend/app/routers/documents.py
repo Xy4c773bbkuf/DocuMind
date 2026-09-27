@@ -1,7 +1,7 @@
 import io
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, Body
 from fastapi.responses import FileResponse
-from sqlalchemy import func, or_, select
+from sqlalchemy import exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from ..db import get_db
@@ -26,7 +26,12 @@ async def list_documents(q: str | None = None, tag: str | None = None, file_type
     base = select(Document).where(Document.owner_id == user.id)
     if q:
         like = f"%{q}%"
-        base = base.where(or_(Document.title.ilike(like), Document.content.ilike(like), Document.summary.ilike(like)))
+        base = base.where(or_(
+            Document.title.ilike(like),
+            Document.content.ilike(like),
+            Document.summary.ilike(like),
+            exists(select(Keyword.id).where(Keyword.document_id == Document.id, Keyword.term.ilike(like))),
+        ))
     if tag:
         base = base.join(Document.tags).where(Tag.name == tag, Tag.owner_id == user.id)
     if file_type_filter:
