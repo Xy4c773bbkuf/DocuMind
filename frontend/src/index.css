@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@theme { --color-ink: #172033; --color-muted: #667085; --color-brand: #6157e8; --color-surface: #f7f8fc; }
+body { margin: 0; font-family: "Trebuchet MS", ui-sans-serif, sans-serif; background: radial-gradient(circle at 90% -10%, #e5e1ff 0, transparent 35%), #f7f8fc; color: #172033; }
+* { box-sizing: border-box; }
+button, input, textarea { font: inherit; }
+button { cursor: pointer; }
