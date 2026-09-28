@@ -21,13 +21,14 @@ import {
   Tag,
 } from "lucide-react";
 import "./index.css";
-import MvpApp from "./Workspace";
+import MvpApp, { FullDocumentRoute } from "./Workspace";
 
 const API = import.meta.env.VITE_API_URL || "/api";
 type Doc = {
   id: number;
   title: string;
   filename: string;
+  file_type?: string;
   summary: string;
   content: string;
   word_count: number;
@@ -188,6 +189,47 @@ function Login() {
       </div>
     </div>
   );
+}
+
+function Reveal({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        node.classList.add("is-visible");
+        observer.disconnect();
+      }
+    }, { threshold: 0.16 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return <div ref={ref} id={id} className={`reveal ${className}`}>{children}</div>;
+}
+
+function Landing({ authenticated = false }: { authenticated?: boolean }) {
+  const [recentDocs, setRecentDocs] = useState<Doc[]>([]);
+  const [accountStats, setAccountStats] = useState({ documents: 0, words: 0, themes: 0 });
+  useEffect(() => {
+    if (!authenticated) return;
+    void api("/documents?page_size=3").then((data) => setRecentDocs(data.items)).catch(() => undefined);
+    void api("/documents/stats").then(setAccountStats).catch(() => undefined);
+  }, [authenticated]);
+  const recentReading = authenticated && recentDocs.length > 0;
+  return <div className="landing">
+    <header className="landing-nav"><Link className="wordmark" to="/">DOCUMIND<span>.</span></Link><nav><a href="#method">METHOD</a><a href="#library">LIBRARY</a><Link className="landing-login" to={authenticated ? "/documents" : "/login"}>{authenticated ? "OPEN LIBRARY" : "SIGN IN"}</Link>{authenticated && <button className="landing-signout" onClick={() => { localStorage.clear(); location.href = "/login"; }}>SIGN OUT</button>}</nav></header>
+    <main>
+      <section className="landing-hero">
+        <div className="hero-copy"><p className="eyebrow">A PRIVATE DOCUMENT LIBRARY / 2026</p><h1>Read clearly.<br /><em>Return often.</em></h1><p className="hero-lede">DocuMind turns the documents you already have into a working library of titles, themes, tags, and searchable text.</p><div className="hero-actions"><Link className="landing-primary" to={authenticated ? "/documents" : "/login"}>{authenticated ? "OPEN YOUR LIBRARY" : "ENTER YOUR LIBRARY"} <span>↗</span></Link><a className="landing-secondary" href="#method">SEE HOW IT WORKS</a></div></div>
+        {recentReading ? <div className="hero-specimen account-specimen" aria-label="Recent reading for your account"><div className="specimen-top"><span>YOUR LIBRARY</span><span>{accountStats.documents} DOCUMENTS</span></div><div className="specimen-title">Recent reading</div>{recentDocs.map((document, index) => <Link className="specimen-row" to="/documents" key={document.id}><span>{String(index + 1).padStart(2, "0")}</span><strong>{document.title}</strong><small>{document.file_type?.toUpperCase() || "FILE"} · {document.word_count.toLocaleString()} WORDS</small><b>↗</b></Link>)}<div className="specimen-footer"><span>{accountStats.words.toLocaleString()} WORDS / {accountStats.themes} THEMES</span><span>ACCOUNT ONLY</span></div></div> : <div className="hero-private-note"><span>YOUR READING SPACE</span><p>{authenticated ? "Upload your first document and your recent reading will appear here." : "Sign in to see your own recent reading here."}</p></div>}
+      </section>
+      <Reveal className="landing-statement"><p className="eyebrow">THE WORKING PRINCIPLE / 01</p><h2>Make the useful parts<br /><em>easy to find.</em></h2><p>Documents arrive as files. DocuMind gives them a title, a readable shape, a set of themes, and a place in your own system.</p></Reveal>
+      <section id="method" className="method-section"><div className="section-marker"><span>METHOD</span><span>01 / 03</span></div><Reveal className="method-row"><div className="method-number">01</div><div><h3>Bring it in.</h3><p>Upload a text file, PDF, or DOCX. The original stays attached to your account while its text becomes available to search.</p></div><div className="method-art text-art">TXT<br /><span>PDF / DOCX</span></div></Reveal><Reveal className="method-row"><div className="method-number">02</div><div><h3>Give it shape.</h3><p>Local extraction calculates the title, word count, reading time, and recurring keyword themes without requiring an AI service.</p></div><div className="method-art number-art">384<br /><span>WORDS</span></div></Reveal><Reveal className="method-row"><div className="method-number">03</div><div><h3>Find it again.</h3><p>Search across document words and extracted themes. Add your own tags, filter the library, and open the source text when context matters.</p></div><div className="method-art search-art">SEARCH<br /><span>WORDS + THEMES</span></div></Reveal></section>
+      <Reveal className="library-section" id="library"><div><p className="eyebrow">THE LIBRARY / 02</p><h2>A calmer way to<br /><em>keep context.</em></h2></div><div className="library-note"><p>Every document keeps its original file, extracted text, summary, themes, and tags together. The result is small enough to scan and deep enough to return to.</p><Link to={authenticated ? "/documents" : "/login"}>{authenticated ? "OPEN YOUR LIBRARY" : "OPEN DOCUMIND"} <span>↗</span></Link></div></Reveal>
+    </main>
+    <footer className="landing-footer"><span>DOCUMIND.</span><span>LOCAL FIRST / AI OPTIONAL</span><Link to={authenticated ? "/documents" : "/login"}>{authenticated ? "OPEN LIBRARY" : "SIGN IN"}</Link></footer>
+  </div>;
 }
 
 function Dashboard() {
@@ -441,18 +483,14 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/documents/:id/read" element={<FullDocumentRoute id={location.pathname.split("/")[2]} />} />
       <Route
         path="/"
         element={
           localStorage.getItem("token") ? (
-            <MvpApp
-              onLogout={() => {
-                localStorage.clear();
-                location.href = "/login";
-              }}
-            />
+            <Landing authenticated />
           ) : (
-            <Navigate to="/login" />
+            <Landing />
           )
         }
       />
@@ -497,17 +535,7 @@ function DetailRoute() {
   return <Detail id={id} />;
 }
 function Root() {
-  const [authenticated, setAuthenticated] = useState(
-    Boolean(localStorage.getItem("token")),
-  );
-  return authenticated ? (
-    <MvpApp
-      onLogout={() => {
-        localStorage.clear();
-        setAuthenticated(false);
-      }}
-    />
-  ) : (
+  return (
     <BrowserRouter>
       <App />
     </BrowserRouter>
